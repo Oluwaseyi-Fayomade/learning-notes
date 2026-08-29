@@ -9,7 +9,6 @@ NoSQL is a key value pair data. It has a flexible table
 Eg DynamoDB
 It is use for logs, metrics, incident records etc
 
-
 ## ACID - what it stands for and why it matters for Paydirect
 
 Atomicity - It either completes transaction or fails
