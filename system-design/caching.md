@@ -1,33 +1,42 @@
-# What is a cache and why it matters?
+# Caching
 
-A cache stores data in fast memory (RAM), so that the subsequent request can access it faster.
+## What is a cache and why does it matter?
 
-It matters because it helps retrieve data faster for frequent use. examples is 500 users hitting the database simultaneously, cache prevent it from sudden outage.
+A cache is a temporary storage layer — usually in RAM — that sits between your application and your database. Instead of hitting the database on every request, you store the result of a query in the cache so the next request gets it instantly.
 
-## The 3 caching strategies (Cache-Aside, Write-Through, Write-Behind)
+Why does this matter? Imagine 500 bank users opening the same report on Paydirect at 9am. Without a cache, that's 500 database queries running simultaneously — one slow stored procedure and the whole thing falls over. With a cache, only the first request hits the database. The other 499 get served from memory in milliseconds.
 
-i. Cache Aside: This divided into 2:
+## The 3 Caching Strategies
 
-cache hit: this is when data is found in cache and return immediately.
+### Cache-Aside (most common)
 
-cache miss: when the request could not find data on the cache, it goes to the database to fetch data stored and it takes time.
+The application manages the cache manually. When a request comes in, it checks the cache first. If the data is there — cache hit — it returns immediately without touching the database. If it's not there — cache miss — it goes to the database, fetches the data, stores it in the cache for next time, then returns it.
 
-ii. Write Through: this allows data to be stored on both the cache and database immediately once the request hits it.
+This is the right strategy for Paydirect reports. Read-heavy, and the application can handle a cache miss gracefully.
 
-iii. Write Behind: this allows data to sync background after the request hits the cache. If cache crashes before database is updated, data will be lost permanently
+### Write-Through
 
-## The 3 eviction policies (LRU, LFU, TTL)
+Every time data is written, it goes to both the cache and the database at the same time. The cache is always in sync — no stale data. The downside is that every write is slower because it has to update two places. Good for systems where consistency is critical.
 
-LRU - Least Recently Used - removes item that have not be accessed over a long period of time.
+### Write-Behind (Write-Back)
 
-LFU - Least Frequent Used - removes item that are accessed least overall.
+Data is written to the cache immediately and the database is updated later in the background. This makes writes very fast — but it's dangerous. If the cache crashes before the database is updated, that data is permanently lost. Never use this for financial systems. In a payment platform, losing a transaction record is catastrophic.
 
-TTL - Time To Live - removes item after the set time of expiration.
 
-## Cache stampede and one prevention method
+## Eviction Policies - What Gets Removed When Cache is Full?
 
-Cache stampede is when multiple request hits the database at once, this leads to delay and it is majorly caused by cache expiry.
+**LRU - Least Recently Used:** Removes the item that hasn't been accessed for the longest time. The most common policy. Good general-purpose choice.
 
-Mutex/Lock — only one request rebuilds the cache, others wait for it to finish.
+**LFU - Least Frequently Used:** Removes the item that has been accessed least often overall. Better when some items are consistently popular and should never be evicted.
 
-Staggered TTLs - add a small random offset to expiry times so entries don't all expire simultaneously.
+**TTL - Time To Live:** Removes items after a set time expires, regardless of how often they've been accessed. Good for time-sensitive data like reports that need to stay fresh.
+
+## Cache Stampede
+
+Cache stampede happens when a cached item expires and a large number of requests all get a cache miss at the same moment — flooding the database with simultaneous queries. This is the exact problem you were trying to avoid by adding a cache in the first place.
+
+**Two ways to prevent it:**
+
+**Mutex/Lock:** Only one request is allowed to rebuild the cache. All other requests wait for it to finish, then read from the freshly populated cache.
+
+**Staggered TTLs:** Instead of all cache entries expiring at the same time, add a small random offset to each entry's expiry. This spreads out the misses so the database never gets hit all at once.
