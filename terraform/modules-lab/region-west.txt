@@ -1,0 +1,1 @@
+This module instance is using AWS region: us-west-2
