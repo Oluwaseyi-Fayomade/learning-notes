@@ -51,3 +51,14 @@ module "region_west" {
   }
   output_path = "${path.module}/region-west.txt"
 }
+
+# Consuming the SAME "hello" module logic, but this time from the PRIVATE
+# registry (app.terraform.io) instead of a local path — proving the publish
+# flow works end-to-end. Note the 4-segment source: <host>/<org>/<name>/<provider>.
+module "hello_from_registry" {
+  source  = "app.terraform.io/Willie-project/hello/local"
+  version = "1.0.0"
+
+  output_path = "${path.module}/hello-from-registry.txt"
+  message     = "Hello from the private registry!"
+}

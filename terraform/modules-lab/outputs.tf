@@ -9,3 +9,7 @@ output "region_east" {
 output "region_west" {
   value = module.region_west.region
 }
+
+output "hello_from_registry_path" {
+  value = module.hello_from_registry.file_path
+}
